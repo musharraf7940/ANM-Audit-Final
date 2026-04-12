@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Audit Dashboard</title>
+  <link rel="stylesheet" href="dashboard.css" />
+  <script type="module" src="dashboard.js"></script>
+</head>
+
+<body>
+  <div class="app">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="logo">A</div>
+        <div>
+          <div class="brand-title">ANM Audit Tool</div>
+          
+        </div>
+      </div>
+
+      <nav class="nav">
+        <button class="nav-item active">Dashboard</button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button class="btn btn-ghost" onclick="logout()">Logout</button>
+      </div>
+    </aside>
+
+    <!-- Main -->
+   <main class="main">
+
+  <header class="topbar">
+    <div>
+      <h1 class="page-title">Dashboard</h1>
+      <p class="page-subtitle" id="welcome">Loading…</p>
+
+      <div id="roleBadge" class="role-badge" style="display:none;">
+        <span id="roleDot" class="role-dot"></span>
+        <span id="roleText">Role</span>
+      </div>
+    </div>
+
+    <div id="uploadSection" class="upload">
+  <input type="file" id="fileInput" hidden />
+  <button id="selectFileBtn" class="btn btn-primary">Select file</button>
+<input type="file" id="fileInput" style="display:none;" />
+<button class="btn btn-primary" onclick="uploadFile()">Upload</button>
+</div>
+  
+   <div class="notif-wrapper">
+  <button class="notif-btn" onclick="toggleNotifications()">
+    <span class="bell-icon">🔔</span>
+    <span id="notifCount" class="notif-badge" style="display:none;">0</span>
+  </button>
+</div>
+
+  </header>
+
+  
+  <section class="content">
+    <div class="toolbar">
+      <div class="search">
+        <input id="searchInput" type="text" placeholder="Search files…" />
+      </div>
+
+      <select id="statusFilter">
+        <option value="all">All statuses</option>
+        <option value="under_review">Under review</option>
+        <option value="changes_requested">Changes requested</option>
+        <option value="resubmitted">Resubmitted</option>
+        <option value="approved">Approved</option>
+      </select>
+    </div>
+
+    <div id="fileList" class="grid"></div>
+  </section>
+
+</main>
+  </div>
+      
+  <!-- Comments Drawer -->
+  <div id="commentsPanel" class="drawer" style="display:none;">
+    <div class="drawer-card">
+      <div class="drawer-header">
+        <div>
+          <h3>Comments</h3>
+          <p class="muted" id="commentsMeta">—</p>
+        </div>
+        <button id="closeCommentsBtn" class="btn btn-ghost">Close</button>
+      </div>
+
+      <div id="commentsList" class="comments-list"></div>
+
+      <div class="comment-composer">
+        <textarea id="commentComposer" placeholder="Write a comment…"></textarea>
+        <button id="sendCommentBtn" class="btn btn-primary">Send</button>
+      </div>
+    </div>
+  </div>
+
+<div id="historyModal" class="drawer" style="display:none;">
+  <div class="drawer-card">
+    <div class="drawer-header">
+      <div>
+        <h3>File History</h3>
+        <p class="muted">All versions for this audit</p>
+      </div>
+      <button class="btn btn-ghost" onclick="closeHistory()">Close</button>
+    </div>
+
+    <div id="historyList" class="comments-list"></div>
+  </div>
+</div>
+
+
+  <!-- Toast -->
+  <div id="toast" class="toast" style="display:none;"></div>
+
+  <div id="notificationsPanel" class="drawer" style="display:none;">
+  <div class="drawer-card">
+    <div class="drawer-header">
+      <div>
+        <h3>Notifications</h3>
+        <p class="muted">Recent activity</p>
+      </div>
+      <button class="btn btn-ghost" onclick="toggleNotifications()">Close</button>
+    </div>
+
+    <div id="notificationsList" class="comments-list"></div>
+  </div>
+</div>
+
+  <!-- Confirmation Modal -->
+<div id="confirmModal" class="modal-backdrop" style="display:none;">
+  <div class="modal">
+    <h3 id="confirmTitle">Confirm</h3>
+    <p id="confirmMessage">Are you sure?</p>
+    <div class="modal-actions">
+      <button id="confirmCancelBtn" class="btn secondary">Cancel</button>
+      <button id="confirmOkBtn" class="btn danger">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- Rename Modal -->
+<div id="renameModal" class="modal-overlay" style="display:none;">
+  <div class="modal-card">
+    <h3 id="renameTitle">Rename File</h3>
+
+    <input
+      type="text"
+      id="renameInput"
+      class="input"
+      placeholder="Enter file name"
+      style="width:100%; margin-top:12px;"
+    />
+
+    <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:18px;">
+      <button class="btn" id="renameCancelBtn">Cancel</button>
+      <button class="btn btn-primary" id="renameOkBtn">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay" class="loading-backdrop" style="display:none;">
+  <div class="loading-box">
+    <div class="spinner"></div>
+    <div id="loadingText">Please wait...</div>
+  </div>
+</div>
+
+<div id="filesModal" class="modal-backdrop" style="display:none;">
+  <div class="modal" style="width:min(720px,95vw);">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <h3 style="margin:0;">Audit Files</h3>
+      <button class="btn btn-ghost" id="closeFilesModalBtn">Close</button>
+    </div>
+
+    <div style="margin-top:12px;">
+      <div><b>Main file:</b> <span id="mainFileArea">—</span></div>
+    </div>
+
+    <hr style="border:0;border-top:1px solid rgba(255,255,255,0.08);margin:14px 0;">
+
+    <div>
+      <b>Supporting files:</b>
+      <div id="attachmentsList" style="margin-top:10px;"></div>
+    </div>
+
+    <div style="margin-top:14px; display:flex; gap:10px; align-items:center;">
+      <input type="file" id="attachInput" />
+      <button class="btn btn-primary" id="attachUploadBtn">Upload supporting file</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,33 @@
+
+[functions.send-notification-email]
+enabled = true
+verify_jwt = true
+import_map = "./functions/send-notification-email/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/send-notification-email/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/send-notification-email/*.html" ]
+
+[functions.send-reset-otp]
+enabled = true
+verify_jwt = true
+import_map = "./functions/send-reset-otp/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/send-reset-otp/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/send-reset-otp/*.html" ]
+
+[functions.verify-reset-otp]
+enabled = true
+verify_jwt = true
+import_map = "./functions/verify-reset-otp/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/verify-reset-otp/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/verify-reset-otp/*.html" ]

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Forgot Password - ANM Audit Tool</title>
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+</head>
+<body>
+<section>
+  <div class="login-box">
+    <div class="logo-container">
+      <img src="images/WhatsApp Image 2026-01-06 at 11.19.28 PM.jpeg" class="form-logo">
+    </div>
+
+    <h2>Forgot Password</h2>
+
+    <!-- STEP 1 EMAIL -->
+    <div id="step-email">
+      <div class="input-box">
+        <span class="icon"><ion-icon name="mail-outline"></ion-icon></span>
+        <input type="email" id="email" required>
+        <label>Email</label>
+      </div>
+      <button id="sendOtpBtn">Send OTP</button>
+    </div>
+
+    <!-- STEP 2 OTP -->
+    <div id="step-otp" style="display:none;">
+      <div class="input-box">
+        <input type="text" id="otp" required>
+        <label>Enter OTP</label>
+      </div>
+      <button id="verifyOtpBtn">Verify OTP</button>
+    </div>
+
+    <!-- STEP 3 PASSWORD -->
+    <div id="step-password" style="display:none;">
+      <div class="input-box">
+        <input type="password" id="newPassword" required>
+        <label>New Password</label>
+      </div>
+      <button id="updatePasswordBtn">Update Password</button>
+    </div>
+
+    <p id="message" style="margin-top:15px; text-align:center;"></p>
+  </div>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const supabaseUrl = 'https://tdcusqldrsrogtsafeev.supabase.co';
+const supabaseKey = 'sb_publishable_zq8kXpPwoXhR10VUKWTLMQ_mYiFocTQ';
+const supaClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+const message = document.getElementById("message");
+const stepEmail = document.getElementById("step-email");
+const stepOtp = document.getElementById("step-otp");
+const stepPassword = document.getElementById("step-password");
+
+let userEmail = "";
+let verifiedOtp = "";
+
+// STEP 1 → SEND OTP
+document.getElementById("sendOtpBtn").addEventListener("click", async () => {
+  const email = document.getElementById("email").value.trim().toLowerCase();
+
+  if (!email) {
+    message.textContent = "Please enter your registered email.";
+    return;
+  }
+
+  message.textContent = "Sending OTP...";
+
+  const { data, error } = await supaClient.functions.invoke("send-reset-otp", {
+    body: { email }
+  });
+
+  console.log("send-reset-otp response:", { data, error });
+
+  if (error) {
+    console.error("Function invoke error:", error);
+    message.textContent = "Failed to send OTP.";
+    return;
+  }
+
+  if (data?.error) {
+    console.error("Function returned error:", data.error);
+    message.textContent = data.error;
+    return;
+  }
+
+  userEmail = email;
+  message.textContent = data?.message || "OTP sent to your email.";
+  stepEmail.style.display = "none";
+  stepOtp.style.display = "block";
+});
+
+// STEP 2 → VERIFY OTP
+document.getElementById("verifyOtpBtn").addEventListener("click", async () => {
+  const otp = document.getElementById("otp").value.trim();
+
+  if (!otp) {
+    message.textContent = "Please enter the OTP.";
+    return;
+  }
+
+  verifiedOtp = otp;
+  message.textContent = "OTP entered. Now set your new password.";
+  stepOtp.style.display = "none";
+  stepPassword.style.display = "block";
+});
+
+// STEP 3 → UPDATE PASSWORD
+document.getElementById("updatePasswordBtn").addEventListener("click", async () => {
+  const newPassword = document.getElementById("newPassword").value;
+
+  if (newPassword.length < 6) {
+    message.textContent = "Password must be at least 6 characters.";
+    return;
+  }
+
+  message.textContent = "Updating password...";
+
+  const { data, error } = await supaClient.functions.invoke("verify-reset-otp", {
+    body: {
+      email: userEmail,
+      otp: verifiedOtp,
+      newPassword
+    }
+  });
+
+  console.log("verify-reset-otp response:", { data, error });
+
+  if (error) {
+    console.error("Verify invoke error:", error);
+    message.textContent = "Password reset failed.";
+    return;
+  }
+
+  if (data?.error) {
+    message.textContent = data.error;
+    return;
+  }
+
+  message.textContent = "Password updated successfully!";
+  setTimeout(() => {
+    window.location.href = "login.html";
+  }, 1500);
+});
+</script>
+</body>
+</html>
