@@ -5,10 +5,24 @@ pdfjsLib.GlobalWorkerOptions.workerSrc =
 import { createClient } from 
 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 
+
 const supabase = createClient(
   'https://tdcusqldrsrogtsafeev.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkY3VzcWxkcnNyb2d0c2FmZWV2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY4NDE1NTMsImV4cCI6MjA4MjQxNzU1M30.9fdzFs34W4_o3NSHJ_dEFZf2zGjVH1ogDpWBRrtQHxU'
+  'sb_publishable_zq8kXpPwoXhR10VUKWTLMQ_mYiFocTQ'  
 );
+
+
+// ─── Session expiry handler ───────────────────────
+supabase.auth.onAuthStateChange((event, session) => {
+  if (event === "SIGNED_OUT" || (!session && event !== "INITIAL_SESSION")) {
+    window.location.href = "index.html";
+  }
+
+  if (event === "TOKEN_REFRESHED") {
+    console.log("Session refreshed ✅");
+  }
+});
+
 
 let currentUser = null;
 let currentRole = null;
@@ -19,6 +33,11 @@ let _confirmResolve = null;
 let allAudits = [];      // store all rows from DB
 let currentSearch = "";  // current search text
 let currentStatus = "all";
+let allArchiveAudits = [];
+let archiveSearch = "";
+let archiveYearFilter = "all";
+let currentPage = "dashboard"; // 'dashboard' or 'archive'
+
 
 async function createNotification(targetUserId, auditId, type, message) {
   // 1) Save in-app notification (your current system)
@@ -54,6 +73,8 @@ async function createNotification(targetUserId, auditId, type, message) {
     console.error("email function invoke crashed:", e);
   }
 }
+
+
 
 async function sendEmailNotification(targetUserId, auditId, type, message) {
   const { data, error } = await supabase.functions.invoke("send-notification-email", {
@@ -107,6 +128,33 @@ async function markAllNotificationsRead() {
     console.error("markAllNotificationsRead error:", error);
   }
 }
+
+function toggleMobileNav() {
+  const sidebar = document.getElementById("sidebar");
+  const overlay = document.getElementById("mobileNavOverlay");
+  const isOpen = sidebar.classList.contains("open");
+
+  if (isOpen) {
+    sidebar.classList.remove("open");
+    overlay.style.display = "none";
+    document.getElementById("hamburgerBtn").textContent = "☰";
+  } else {
+    sidebar.classList.add("open");
+    overlay.style.display = "block";
+    document.getElementById("hamburgerBtn").textContent = "✕";
+  }
+}
+
+function closeMobileNav() {
+  const sidebar = document.getElementById("sidebar");
+  const overlay = document.getElementById("mobileNavOverlay");
+  sidebar.classList.remove("open");
+  overlay.style.display = "none";
+  document.getElementById("hamburgerBtn").textContent = "☰";
+}
+
+window.toggleMobileNav = toggleMobileNav;
+window.closeMobileNav = closeMobileNav;
 
 async function getPartners() {
   const { data } = await supabase
@@ -179,13 +227,77 @@ function setLoading(isLoading, text = "Please wait...") {
   overlay.style.display = isLoading ? "flex" : "none";
 }
 
+function switchTab(tab) {
+  const filesSection = document.getElementById("filesSection");
+  const adminSection = document.getElementById("adminSection");
+  const tabFiles = document.getElementById("tabFiles");
+  const tabUsers = document.getElementById("tabUsers");
+
+  if (tab === "files") {
+    filesSection.style.display = "block";
+    adminSection.style.display = "none";
+    tabFiles.classList.add("active");
+    tabUsers.classList.remove("active");
+  } else {
+    filesSection.style.display = "none";
+    adminSection.style.display = "block";
+    tabUsers.classList.add("active");
+    tabFiles.classList.remove("active");
+  }
+}
+
+window.switchTab = switchTab;
+
+function showPage(page) {
+  currentPage = page;
+
+  const dashboardContent = document.getElementById("filesSection");
+  const adminTabs = document.getElementById("adminTabs");
+  const adminSection = document.getElementById("adminSection");
+  const archivePage = document.getElementById("archivePage");
+  const navDashboard = document.getElementById("navDashboard");
+  const navArchive = document.getElementById("navArchive");
+  const uploadSection = document.getElementById("uploadSection");
+  const pageTitle = document.querySelector(".page-title");
+
+  if (page === "dashboard") {
+    dashboardContent.style.display = "block";
+    archivePage.style.display = "none";
+    navDashboard.classList.add("active");
+    navArchive.classList.remove("active");
+    uploadSection.style.display = "flex";
+    pageTitle.textContent = "Dashboard";
+
+    // restore admin tabs if super_admin
+    if (currentRole === "super_admin") {
+      adminTabs.style.display = "flex";
+    }
+
+    // close mobile nav
+    closeMobileNav();
+  } else {
+    dashboardContent.style.display = "none";
+    adminSection.style.display = "none";
+    adminTabs.style.display = "none";
+    archivePage.style.display = "block";
+    navDashboard.classList.remove("active");
+    navArchive.classList.add("active");
+    uploadSection.style.display = "none";
+    pageTitle.textContent = "Approved Audit Files";
+
+    closeMobileNav();
+    loadArchive();
+  }
+}
+
+window.showPage = showPage;
 
 async function loadUser() {
   const { data: { user }, error: userErr } = await supabase.auth.getUser();
   if (userErr) return console.error("getUser error:", userErr);
 
   if (!user) {
-    window.location.href = "login.html";
+    window.location.href = "index.html";
     return;
   }
 
@@ -209,6 +321,15 @@ async function loadUser() {
 
   currentRole = profile?.role || "audit"; // fallback if role is null
 
+if (currentRole === "super_admin") {
+  
+  document.getElementById("adminTabs").style.display = "flex";
+  // Start on Files tab by default
+  switchTab("files");
+  wireAdminPanel();
+  await loadAdminUsers();
+}
+
   document.getElementById("welcome").innerText = `Welcome (${currentRole})`;
 
   // Role badge
@@ -219,13 +340,26 @@ async function loadUser() {
   if (badge && dot && text) {
     badge.style.display = "inline-flex";
     dot.className = `role-dot ${currentRole}`;
-    text.textContent = currentRole === "partner" ? "Partner" : "Audit Team";
+    text.textContent =
+  currentRole === "super_admin"
+    ? "Super Admin"
+    : currentRole === "partner"
+    ? "Partner"
+    : "Audit Team";
   }
 
-  wireCommentsClose();
-  wireFilters();
-  await loadAudits();
-  await loadNotifications();
+  
+// Show archive nav for partner and super_admin
+if (currentRole === "partner" || currentRole === "super_admin") {
+  const navArchive = document.getElementById("navArchive");
+  if (navArchive) navArchive.style.display = "flex";
+}
+
+wireCommentsClose();
+wireFilters();
+wireArchiveFilters();
+await loadAudits();
+await loadNotifications();
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -289,15 +423,20 @@ function renderAudits() {
 
   const q = currentSearch.trim().toLowerCase();
 
-  const filtered = allAudits.filter(a => {
-    // status filter
-    const statusOk = (currentStatus === "all") || (a.status === currentStatus);
+  
+const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
 
-    // search filter (by file_name)
-    const searchOk = !q || (a.file_name || "").toLowerCase().includes(q);
+const filtered = allAudits.filter(a => {
+  // Hide approved files older than 3 days — they live in Archive now
+  if (a.status === "approved") {
+    const approvedOld = new Date(a.updated_at || a.created_at) < threeDaysAgo;
+    if (approvedOld) return false;
+  }
 
-    return statusOk && searchOk;
-  });
+  const statusOk = (currentStatus === "all") || (a.status === currentStatus);
+  const searchOk = !q || (a.file_name || "").toLowerCase().includes(q);
+  return statusOk && searchOk;
+});
 
   container.innerHTML = "";
 
@@ -317,9 +456,18 @@ function renderAudits() {
       <div class="card-top">
         <div>
           <p class="file-name">${audit.file_name}</p>
-          <div class="meta">
-            <span>Uploaded: ${new Date(audit.created_at).toLocaleString()}</span>
-          </div>
+          
+<div class="meta">
+  <span>Uploaded: ${new Date(audit.created_at).toLocaleString('en-LK', { timeZone: 'Asia/Colombo' })}</span>
+  ${audit.status === 'approved' && audit.updated_at
+    ? `<span style="color:var(--good);">✓ Approved: ${new Date(audit.updated_at).toLocaleString('en-LK', { timeZone: 'Asia/Colombo' })}</span>`
+    : audit.status === 'changes_requested' && audit.updated_at
+    ? `<span style="color:var(--danger);">✗ Changes requested: ${new Date(audit.updated_at).toLocaleString('en-LK', { timeZone: 'Asia/Colombo' })}</span>`
+    : audit.status === 'resubmitted' && audit.updated_at
+    ? `<span style="color:var(--warn);">↺ Resubmitted: ${new Date(audit.updated_at).toLocaleString('en-LK', { timeZone: 'Asia/Colombo' })}</span>`
+    : ``
+  }
+</div>
         </div>
         <span class="badge ${badgeClass}">${audit.status}</span>
       </div>
@@ -344,7 +492,8 @@ function renderAudits() {
 }
 
         ${
-          ((currentRole === "audit" || currentRole === "partner") && audit.status !== "approved")
+          // ✅ NEW
+        ((currentRole === "audit" || currentRole === "partner" || currentRole === "super_admin") && audit.status !== "approved")
             ? `
               <div class="file-inline">
                 <input type="file" id="reupload-${audit.id}" />
@@ -355,21 +504,23 @@ function renderAudits() {
         }
 
         ${
-          (currentRole === "partner" && audit.status !== "approved")
-            ? `<button class="btn btn-primary" onclick="approveAudit('${audit.id}')">Approve</button>`
+          (currentRole === "partner" || currentRole === "super_admin") && audit.status !== "approved"
+  ? `<button class="btn btn-primary" onclick="approveAudit('${audit.id}')">Approve</button>`
             : ``
         }
 
         ${
-          (currentRole === "partner" && audit.status === "approved")
-            ? `<button class="btn btn-danger" onclick="disapproveAudit('${audit.id}')">Disapprove</button>`
-            : ``
+          (currentRole === "partner" || currentRole === "super_admin") && audit.status === "approved"
+  ? `<button class="btn btn-danger" onclick="disapproveAudit('${audit.id}')">Disapprove</button>`
+  : (currentRole === "partner" || currentRole === "super_admin") && audit.status !== "approved" && audit.status !== "changes_requested"
+  ? `<button class="btn btn-danger" onclick="requestChanges('${audit.id}')">Request Changes</button>`
+  : ``
         }
 
         ${
-          (currentRole === "partner") ||
-          (currentRole === "audit" && audit.status === "under_review")
-            ? `<button class="btn btn-danger" onclick="deleteAudit('${audit.id}','${audit.file_url || ''}','${audit.preview_url || ''}')">Delete</button>`
+          (currentRole === "partner" || currentRole === "super_admin") ||
+(currentRole === "audit" && audit.status === "under_review")
+  ? `<button class="btn btn-danger" onclick="deleteAudit('${audit.id}','${audit.file_url || ''}','${audit.preview_url || ''}')">Delete</button>`
             : ``
         }
       </div>
@@ -380,9 +531,55 @@ function renderAudits() {
 }
 
 
+async function requestChanges(auditId) {
+  if (currentRole !== "partner" && currentRole !== "super_admin") {
+    return toast("Only partner or admin can request changes.", "error");
+  }
+
+  const ok = await confirmModal({
+    title: "Request changes?",
+    message: "This will notify the audit team to revise this file.",
+    okText: "Request Changes"
+  });
+  if (!ok) return;
+
+  await supabase
+    .from("audit")
+    .update({ partner_id: currentUser.id })
+    .eq("id", auditId)
+    .is("partner_id", null);
+
+  const { data: auditRow, error } = await supabase
+    .from("audit")
+    .update({ status: "changes_requested" })
+    .eq("id", auditId)
+    .select("audit_team_id")
+    .single();
+
+  if (error) {
+    console.error(error);
+    return toast("Failed to request changes.", "error");
+  }
+
+  await createNotification(
+    auditRow.audit_team_id,
+    auditId,
+    "disapprove",
+    "Changes have been requested on your audit file."
+  );
+
+  toast("Changes requested ✅", "success");
+  await loadAudits();
+  await loadNotifications();
+}
+
+window.requestChanges = requestChanges;
+
 function downloadFile(url) {
   window.open(url, '_blank')
 }
+window.downloadFile = downloadFile;
+
 
 async function uploadFile() {
   const input = document.getElementById("fileInput");
@@ -448,11 +645,12 @@ async function uploadFile() {
       toast("Uploaded, but history save failed (check RLS).", "warning");
     }
 
-    toast("Uploaded ✅", "success");
-    input.value = "";
-
-    await loadAudits();
-    await loadNotifications();
+    // ✅ NEW — no partner notification on upload since no partner is assigned yet
+// Partner gets assigned only when they first interact with the file
+toast("Uploaded ✅", "success");
+input.value = "";
+await loadAudits();
+await loadNotifications();
   } finally {
     setLoading(false);
   }
@@ -572,7 +770,7 @@ async function reuploadFile(auditId) {
   if (!file) return toast("Please select a file first", "warning");
 
   // Ask new name for re-upload (you can change to renameModal later if you want)
-  const raw = prompt("Enter NEW file name (without extension):", "");
+  const raw = await renameModal("");
   if (raw === null) return; // cancelled
 
   const baseName = sanitizeName(raw);
@@ -631,15 +829,21 @@ async function reuploadFile(auditId) {
     }
 
     // Notify partners (your existing logic)
-    const partners = await getPartners();
-    for (const p of partners) {
-      await createNotification(
-        p.id,
-        auditId,
-        "reupload",
-        "Audit team re-submitted an audit file."
-      );
-    }
+    // ✅ NEW — notify only the assigned partner
+const { data: auditRow } = await supabase
+  .from("audit")
+  .select("partner_id")
+  .eq("id", auditId)
+  .single();
+
+if (auditRow?.partner_id) {
+  await createNotification(
+    auditRow.partner_id,
+    auditId,
+    "reupload",
+    "The audit team has re-submitted a file assigned to you."
+  );
+}
 
     toast("Re-uploaded ✅", "success");
     fileInput.value = "";
@@ -668,7 +872,14 @@ function buildFinalName(originalFileName, customBaseName) {
 
 
 async function approveAudit(auditId) {
-  if (currentRole !== "partner") return toast("Only partner can approve.");
+  if (currentRole !== "partner" && currentRole !== "super_admin") return toast("Only partner or admin can approve.");
+
+  // Auto-assign partner_id if not set
+  await supabase
+    .from("audit")
+    .update({ partner_id: currentUser.id })
+    .eq("id", auditId)
+    .is("partner_id", null);
 
   const { data: auditRow, error } = await supabase
     .from("audit")
@@ -686,13 +897,15 @@ async function approveAudit(auditId) {
     auditRow.audit_team_id,
     auditId,
     "approve",
-    "Your audit file has been approved."
+    "Your audit file has been approved by the partner."
   );
 
   toast("Approved ✅", "success");
   await loadAudits();
   await loadNotifications();
 }
+
+
 async function deleteAudit(auditId, fileUrl, previewUrl) {
   const ok = await confirmModal({
     title: "Delete this file?",
@@ -753,7 +966,14 @@ function extractStoragePath(publicUrl, bucketName) {
 }
 
 async function disapproveAudit(auditId) {
-  if (currentRole !== "partner") return toast("Only partner can disapprove.");
+  if (currentRole !== "partner" && currentRole !== "super_admin") return toast("Only partner or admin can disapprove.");
+
+  // Auto-assign partner_id if not set
+  await supabase
+    .from("audit")
+    .update({ partner_id: currentUser.id })
+    .eq("id", auditId)
+    .is("partner_id", null);
 
   const { data: auditRow, error } = await supabase
     .from("audit")
@@ -771,7 +991,7 @@ async function disapproveAudit(auditId) {
     auditRow.audit_team_id,
     auditId,
     "disapprove",
-    "Changes requested for your audit file."
+    "Changes have been requested on your audit file."
   );
 
   toast("Changes requested ✅", "success");
@@ -804,7 +1024,7 @@ async function openComments(fileId) {
 
   // Both partner and audit can comment
 composer.style.display =
-  (currentRole === "partner" || currentRole === "audit")
+  (currentRole === "partner" || currentRole === "audit" || currentRole === "super_admin")
     ? "block"
     : "none";
 
@@ -830,7 +1050,7 @@ composer.style.display =
     list.innerHTML = "<em>No comments yet.</em>";
   } else {
     list.innerHTML = data.map(c => {
-  const when = new Date(c.created_at).toLocaleString();
+  const when = new Date(c.created_at).toLocaleString('en-LK', { timeZone: 'Asia/Colombo' });
   const role = c.profiles?.role || "user";
   const email = c.profiles?.email || "(no email)";
   return `
@@ -879,7 +1099,6 @@ function toast(message, type = "info") {
 async function addComment() {
   const textArea = document.getElementById("commentComposer");
   const commentText = (textArea?.value || "").trim();
-
   if (!commentText) return toast("Write a comment first.");
 
   const { error } = await supabase
@@ -896,32 +1115,36 @@ async function addComment() {
     return;
   }
 
+  // Fetch audit row including partner_id
   const { data: auditRow } = await supabase
-  .from("audit")
-  .select("audit_team_id")
-  .eq("id", activeFileId)
-  .single();
+    .from("audit")
+    .select("audit_team_id, partner_id")
+    .eq("id", activeFileId)
+    .single();
 
-if (currentRole === "partner") {
+  if (currentRole === "partner" || currentRole === "super_admin") {
+  if (!auditRow.partner_id) {
+    await supabase
+      .from("audit")
+      .update({ partner_id: currentUser.id })
+      .eq("id", activeFileId);
+  }
   await createNotification(
     auditRow.audit_team_id,
     activeFileId,
     "comment",
-    "Partner commented on your audit file."
+    "A partner commented on your audit file."
   );
-} else {
-  const partners = await getPartners();
-  for (const p of partners) {
+} else if (currentRole === "audit") {
+  if (auditRow.partner_id) {
     await createNotification(
-      p.id,
+      auditRow.partner_id,
       activeFileId,
       "comment",
-      "Audit team commented on a file."
+      "The audit team commented on a file assigned to you."
     );
   }
 }
-
-
 
   textArea.value = "";
   openComments(activeFileId);
@@ -939,7 +1162,7 @@ function escapeHtml(str) {
 
 async function logout() {
   await supabase.auth.signOut();
-  window.location.href = "login.html";
+  window.location.href = "index.html";
 }
 
 window.logout = logout;
@@ -1065,7 +1288,7 @@ async function renderAnnotations(fileId, pageNum, overlay, canvas) {
 
 function enableHighlightDrawing(pageNum, overlay, canvas) {
   // Only partner can create highlights
-  if (currentRole !== "partner") return;
+  if (currentRole !== "partner" && currentRole !== "super_admin") return;
 
   let startX = 0, startY = 0;
   let tempBox = null;
@@ -1164,6 +1387,263 @@ function wireFilters() {
 
 let activeAuditForFiles = null;
 
+
+// ─── Archive ───────────────────────────────────────
+
+async function loadArchive() {
+  const container = document.getElementById("archiveList");
+  if (!container) return;
+
+  container.innerHTML = "<em style='color:var(--muted);padding:20px;display:block;'>Loading...</em>";
+
+  const { data, error } = await supabase
+    .from("audit")
+    .select("*")
+    .eq("status", "approved")
+    .order("updated_at", { ascending: false });
+
+  if (error) {
+    console.error("loadArchive error:", error);
+    container.innerHTML = "<em style='color:var(--danger);'>Failed to load archive.</em>";
+    return;
+  }
+
+  allArchiveAudits = data || [];
+  populateArchiveYearFilter();
+  renderArchive();
+}
+
+function populateArchiveYearFilter() {
+  const select = document.getElementById("archiveYearFilter");
+  if (!select) return;
+
+  const years = [...new Set(allArchiveAudits.map(a => {
+    return new Date(a.updated_at || a.created_at).getFullYear();
+  }))].sort((a, b) => b - a);
+
+  select.innerHTML = `<option value="all">All years</option>` +
+    years.map(y => `<option value="${y}">${y}</option>`).join("");
+}
+
+function renderArchive() {
+  const container = document.getElementById("archiveList");
+  if (!container) return;
+
+  const q = archiveSearch.trim().toLowerCase();
+
+  const filtered = allArchiveAudits.filter(a => {
+    const yearOk = archiveYearFilter === "all" ||
+      new Date(a.updated_at || a.created_at).getFullYear().toString() === archiveYearFilter;
+    const searchOk = !q || (a.file_name || "").toLowerCase().includes(q);
+    return yearOk && searchOk;
+  });
+
+  if (filtered.length === 0) {
+    container.innerHTML = `
+      <div class="empty">
+        <div style="font-size:32px;">🗄️</div>
+        <div>No archived files found.</div>
+      </div>`;
+    return;
+  }
+
+  const monthNames = [
+    "January","February","March","April","May","June",
+    "July","August","September","October","November","December"
+  ];
+
+  // Group by year → month
+  const grouped = {};
+  filtered.forEach(a => {
+    const date = new Date(a.updated_at || a.created_at);
+    const year = date.getFullYear();
+    const month = date.getMonth(); // 0-11
+
+    if (!grouped[year]) grouped[year] = {};
+    if (!grouped[year][month]) grouped[year][month] = [];
+    grouped[year][month].push(a);
+  });
+
+  const years = Object.keys(grouped).sort((a, b) => b - a);
+
+  const foldersHtml = years.map(year => {
+    const months = Object.keys(grouped[year]).sort((a, b) => b - a);
+
+    const monthFoldersHtml = months.map(month => {
+      const files = grouped[year][month];
+      const monthLabel = monthNames[parseInt(month)];
+      const monthKey = year + "-" + month;
+
+      const fileCards = files.map(a => {
+        const approvedDate = new Date(a.updated_at || a.created_at)
+          .toLocaleString('en-LK', { timeZone: 'Asia/Colombo' });
+
+        const deleteBtn = currentRole === "super_admin"
+          ? '<button class="btn btn-danger" onclick="archiveDelete(\'' + a.id + '\', \'' + (a.file_url || "") + '\', \'' + (a.preview_url || "") + '\')">Delete</button>'
+          : "";
+
+        return [
+          '<div class="archive-card">',
+            '<div class="archive-card-left">',
+              '<p class="archive-file-name">' + escapeHtml(a.file_name) + '</p>',
+              '<div class="archive-meta">',
+                '<span style="color:var(--good);">✓ Approved: ' + approvedDate + '</span>',
+              '</div>',
+            '</div>',
+            '<div class="archive-card-actions">',
+              '<button class="btn" onclick="downloadFile(\'' + a.file_url + '\')">Download</button>',
+              '<button class="btn" onclick="openHistory(\'' + a.id + '\')">History</button>',
+              '<button class="btn" onclick="openComments(\'' + a.id + '\')">Comments</button>',
+              '<button class="btn" onclick="openFiles(\'' + a.id + '\', \'' + a.file_url + '\', \'' + escapeHtml(a.file_name || "") + '\')">Supporting Files</button>',
+              deleteBtn,
+              '<button class="btn btn-danger" onclick="archiveDisapprove(\'' + a.id + '\')">Disapprove</button>',
+            '</div>',
+          '</div>'
+        ].join("");
+      }).join("");
+
+      return [
+        '<div class="year-folder" id="folder-' + monthKey + '" style="margin-left:16px;margin-top:8px;">',
+          '<div class="year-folder-header" onclick="toggleFolder(\'' + monthKey + '\')">',
+            '<div class="year-folder-left">',
+              '<span class="year-folder-icon">📅</span>',
+              '<span class="year-folder-name" style="font-size:14px;">' + monthLabel + '</span>',
+              '<span class="year-folder-count">' + files.length + ' file' + (files.length !== 1 ? 's' : '') + '</span>',
+            '</div>',
+            '<span class="year-folder-chevron">▶</span>',
+          '</div>',
+          '<div class="year-folder-body">',
+            fileCards,
+          '</div>',
+        '</div>'
+      ].join("");
+    }).join("");
+
+    return [
+      '<div class="year-folder" id="folder-' + year + '">',
+        '<div class="year-folder-header" onclick="toggleFolder(\'' + year + '\')">',
+          '<div class="year-folder-left">',
+            '<span class="year-folder-icon">📁</span>',
+            '<span class="year-folder-name">' + year + '</span>',
+            '<span class="year-folder-count">' + filtered.filter(a => new Date(a.updated_at || a.created_at).getFullYear().toString() === year).length + ' file' + (filtered.filter(a => new Date(a.updated_at || a.created_at).getFullYear().toString() === year).length !== 1 ? 's' : '') + '</span>',
+          '</div>',
+          '<span class="year-folder-chevron">▶</span>',
+        '</div>',
+        '<div class="year-folder-body">',
+          monthFoldersHtml,
+        '</div>',
+      '</div>'
+    ].join("");
+  }).join("");
+
+  container.innerHTML = foldersHtml;
+}
+
+function toggleFolder(year) {
+  const folder = document.getElementById(`folder-${year}`);
+  if (folder) folder.classList.toggle("open");
+}
+
+async function archiveDisapprove(auditId) {
+  const ok = await confirmModal({
+    title: "Disapprove this file?",
+    message: "This will move the file back to the dashboard for the audit team to revise.",
+    okText: "Disapprove"
+  });
+  if (!ok) return;
+
+  setLoading(true, "Disapproving...");
+  try {
+    const { data: auditRow, error } = await supabase
+      .from("audit")
+      .update({ status: "changes_requested" })
+      .eq("id", auditId)
+      .select("audit_team_id")
+      .single();
+
+    if (error) {
+      console.error(error);
+      toast("Disapprove failed.", "error");
+      return;
+    }
+
+    await createNotification(
+      auditRow.audit_team_id,
+      auditId,
+      "disapprove",
+      "Changes have been requested on your approved audit file."
+    );
+
+    toast("File moved back to dashboard ✅", "success");
+    await loadArchive();
+  } finally {
+    setLoading(false);
+  }
+}
+
+async function archiveDelete(auditId, fileUrl, previewUrl) {
+  if (currentRole !== "super_admin") {
+    return toast("Only super admin can delete archived files.", "error");
+  }
+
+  const ok = await confirmModal({
+    title: "Delete archived file?",
+    message: "This will permanently delete the file and all its data. This cannot be undone.",
+    okText: "Delete"
+  });
+  if (!ok) return;
+
+  setLoading(true, "Deleting...");
+  try {
+    try {
+      const filePath = extractStoragePath(fileUrl, "audit-files");
+      if (filePath) await supabase.storage.from("audit-files").remove([filePath]);
+
+      const previewPath = extractStoragePath(previewUrl, "audit-previews");
+      if (previewPath) await supabase.storage.from("audit-previews").remove([previewPath]);
+    } catch (e) {
+      console.warn("Storage delete warning:", e);
+    }
+
+    const { error } = await supabase.from("audit").delete().eq("id", auditId);
+
+    if (error) {
+      console.error(error);
+      toast("Delete failed.", "error");
+      return;
+    }
+
+    toast("Deleted permanently ✅", "success");
+    await loadArchive();
+  } finally {
+    setLoading(false);
+  }
+}
+
+function wireArchiveFilters() {
+  const searchEl = document.getElementById("archiveSearch");
+  const yearEl = document.getElementById("archiveYearFilter");
+
+  if (searchEl) {
+    searchEl.addEventListener("input", (e) => {
+      archiveSearch = e.target.value || "";
+      renderArchive();
+    });
+  }
+
+  if (yearEl) {
+    yearEl.addEventListener("change", (e) => {
+      archiveYearFilter = e.target.value || "all";
+      renderArchive();
+    });
+  }
+}
+
+window.toggleFolder = toggleFolder;
+window.archiveDisapprove = archiveDisapprove;
+window.archiveDelete = archiveDelete;
+
+
 function wireFilesModal() {
   const closeBtn = document.getElementById("closeFilesModalBtn");
   if (closeBtn) {
@@ -1219,7 +1699,7 @@ async function loadAttachments(auditId) {
                 margin-bottom:8px;background:rgba(255,255,255,0.03);">
       <div style="min-width:0;">
         <div style="font-weight:600;word-break:break-word;">${escapeHtml(a.file_name)}</div>
-        <div style="opacity:0.7;font-size:12px;">${new Date(a.created_at).toLocaleString()}</div>
+        <div style="opacity:0.7;font-size:12px;">${new Date(a.created_at).toLocaleString('en-LK', { timeZone: 'Asia/Colombo' })}</div>
       </div>
       <div style="display:flex;gap:8px;flex-shrink:0;">
         <button class="btn" onclick="downloadFile('${a.file_url}')">Download</button>
@@ -1350,7 +1830,7 @@ async function openHistory(auditId) {
   }
 
   list.innerHTML = data.map(v => {
-    const when = new Date(v.created_at).toLocaleString();
+    const when = new Date(v.created_at).toLocaleString('en-LK', { timeZone: 'Asia/Colombo' });
     const email = v.profiles?.email || "(no email)";
     const role = v.profiles?.role || v.uploaded_by_role || "user";
 
@@ -1399,13 +1879,240 @@ async function toggleNotifications() {
 window.toggleNotifications = toggleNotifications;
 
 
+function wireAdminPanel() {
+  const createBtn = document.getElementById("createUserBtn");
+  const refreshBtn = document.getElementById("refreshUsersBtn");
+
+console.log("wireAdminPanel loaded", { createBtn, refreshBtn });
+
+  if (createBtn) {
+    createBtn.onclick = createAdminUser;
+  }
+
+  if (refreshBtn) {
+    refreshBtn.onclick = loadAdminUsers;
+  }
+}
+
+
+
+async function loadAdminUsers() {
+  if (currentRole !== "super_admin") return;
+
+  const list = document.getElementById("adminUsersList");
+  if (!list) return;
+
+  list.innerHTML = "Loading users...";
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, email, role, created_at")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("loadAdminUsers error:", error);
+    list.innerHTML = "<em>Failed to load users.</em>";
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    list.innerHTML = "<em>No users found.</em>";
+    return;
+  }
+
+  list.innerHTML = data.map(user => {
+    const created = user.created_at ? new Date(user.created_at).toLocaleString('en-LK', { timeZone: 'Asia/Colombo' }) : "";
+    const isMe = currentUser && user.id === currentUser.id;
+
+    return `
+      <div class="admin-user-row">
+        <div class="admin-user-left">
+          <div class="admin-user-email">${escapeHtml(user.email || "(no email)")}</div>
+          <div class="admin-user-meta">
+            <span class="role-pill">${escapeHtml(user.role || "audit")}</span>
+            ${created ? ` • ${created}` : ""}
+            ${isMe ? ` • This is you` : ""}
+          </div>
+        </div>
+
+        <div class="admin-user-actions">
+          ${
+            user.role !== "audit"
+              ? `<button class="btn" onclick="changeUserRole('${user.id}', 'audit')">Make Audit</button>`
+              : ``
+          }
+
+          ${
+            user.role !== "partner"
+              ? `<button class="btn" onclick="changeUserRole('${user.id}', 'partner')">Make Partner</button>`
+              : ``
+          }
+
+          ${
+            user.role !== "super_admin"
+              ? `<button class="btn" onclick="changeUserRole('${user.id}', 'super_admin')">Make Admin</button>`
+              : ``
+          }
+
+          ${
+            !isMe
+              ? `<button class="btn btn-danger" onclick="deleteManagedUser('${user.id}', '${escapeHtml(user.email || "")}')">Delete</button>`
+              : ``
+          }
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+async function createAdminUser() {
+  if (currentRole !== "super_admin") {
+    return toast("Only super admin can create users.", "error");
+  }
+
+  const emailEl = document.getElementById("adminNewEmail");
+  const passwordEl = document.getElementById("adminNewPassword");
+  const roleEl = document.getElementById("adminNewRole");
+
+  const email = (emailEl?.value || "").trim().toLowerCase();
+  const password = passwordEl?.value || "";
+  const role = roleEl?.value || "audit";
+
+  if (!email || !password || !role) {
+    return toast("Email, password, and role are required.", "warning");
+  }
+
+  if (!email.includes("@")) {
+    return toast("Enter a valid email address.", "warning");
+  }
+
+  console.log("Create button clicked", { email, role });
+
+  setLoading(true, "Creating user...");
+
+  try {
+    const { data, error } = await supabase.functions.invoke("create-user", {
+  body: { email, password, role }
+});
+
+    console.log("create-user response:", { data, error });
+
+    if (error) {
+      console.error("create-user invoke error:", error);
+      toast("Failed to create user.", "error");
+      return;
+    }
+
+    if (data?.error) {
+      console.error("create-user returned error:", data.error);
+      toast(data.error, "error");
+      return;
+    }
+
+    toast("User created successfully ✅", "success");
+
+    emailEl.value = "";
+    passwordEl.value = "";
+    roleEl.value = "audit";
+
+    await loadAdminUsers();
+  } catch (err) {
+    console.error("createAdminUser crashed:", err);
+    toast(err.message || "Something went wrong while creating user.", "error");
+  } finally {
+    setLoading(false);
+  }
+}
+
+
+async function changeUserRole(userId, newRole) {
+  if (currentRole !== "super_admin") {
+    return toast("Only super admin can change roles.", "error");
+  }
+
+  const ok = await confirmModal({
+    title: "Change user role?",
+    message: `Set this user role to ${newRole}?`,
+    okText: "Change"
+  });
+
+  if (!ok) return;
+
+  setLoading(true, "Updating role...");
+  try {
+   
+    const { data, error } = await supabase.functions.invoke("update-user-role", {
+  body: { userId, newRole }
+});
+    console.log("update-user-role:", { data, error });
+
+    if (error) {
+      console.error("update-user-role invoke error:", error);
+      toast("Failed to update role.", "error");
+      return;
+    }
+
+    if (data?.error) {
+      toast(data.error, "error");
+      return;
+    }
+
+    toast("Role updated successfully ✅", "success");
+    await loadAdminUsers();
+  } finally {
+    setLoading(false);
+  }
+}
+
+
+
+async function deleteManagedUser(userId, email) {
+  if (currentRole !== "super_admin") {
+    return toast("Only super admin can delete users.", "error");
+  }
+
+  const ok = await confirmModal({
+    title: "Delete account?",
+    message: `Delete ${email}? This cannot be undone.`,
+    okText: "Delete"
+  });
+
+  if (!ok) return;
+
+  setLoading(true, "Deleting user...");
+  try {
+    const { data, error } = await supabase.functions.invoke("delete-user", {
+  body: { userId }
+});
+
+    console.log("delete-user:", { data, error });
+
+    if (error) {
+      console.error("delete-user invoke error:", error);
+      toast("Failed to delete user.", "error");
+      return;
+    }
+
+    if (data?.error) {
+      toast(data.error, "error");
+      return;
+    }
+
+    toast("User deleted successfully ✅", "success");
+    await loadAdminUsers();
+  } finally {
+    setLoading(false);
+  }
+}
+window.changeUserRole = changeUserRole;
+window.deleteManagedUser = deleteManagedUser;
+
+
+
+
 wireFilesModal();
 wireReviewModal();
 loadUser(); // ok
 
 
-
-
-uploadFile
-
-
+ 

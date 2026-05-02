@@ -4,14 +4,35 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Audit Dashboard</title>
+  <link rel="icon" type="image/jpeg" href="images/anm.jpeg">
+
   <link rel="stylesheet" href="dashboard.css" />
   <script type="module" src="dashboard.js"></script>
 </head>
 
 <body>
+
+<!-- Mobile nav overlay -->
+<div id="mobileNavOverlay" onclick="closeMobileNav()" style="
+  display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6);
+  z-index:200; backdrop-filter:blur(2px);
+"></div>
+
+<!-- Hamburger button (mobile only) -->
+<button id="hamburgerBtn" onclick="toggleMobileNav()" style="
+  display:none; position:fixed; top:16px; left:16px; z-index:300;
+  width:40px; height:40px; border-radius:10px;
+  border:1px solid rgba(255,255,255,0.1);
+  background:rgba(13,24,48,0.95); color:#fff;
+  font-size:18px; cursor:pointer; align-items:center;
+  justify-content:center; backdrop-filter:blur(10px);
+">☰</button>
+
   <div class="app">
     <!-- Sidebar -->
-    <aside class="sidebar">
+    
+<aside class="sidebar" id="sidebar">
+
       <div class="brand">
         <div class="logo">A</div>
         <div>
@@ -21,8 +42,9 @@
       </div>
 
       <nav class="nav">
-        <button class="nav-item active">Dashboard</button>
-      </nav>
+  <button class="nav-item active" id="navDashboard" onclick="showPage('dashboard')">📋 Dashboard</button>
+  <button class="nav-item" id="navArchive" onclick="showPage('archive')" style="display:none;">🗄️ Approved Audit Files</button>
+</nav>
 
       <div class="sidebar-footer">
         <button class="btn btn-ghost" onclick="logout()">Logout</button>
@@ -33,39 +55,77 @@
    <main class="main">
 
   <header class="topbar">
-    <div>
-      <h1 class="page-title">Dashboard</h1>
-      <p class="page-subtitle" id="welcome">Loading…</p>
+  <div class="topbar-left">
+    <h1 class="page-title">Dashboard</h1>
+    <p class="page-subtitle" id="welcome">Loading…</p>
+    <div id="roleBadge" class="role-badge" style="display:none;">
+      <span id="roleDot" class="role-dot"></span>
+      <span id="roleText">Role</span>
+    </div>
+  </div>
 
-      <div id="roleBadge" class="role-badge" style="display:none;">
-        <span id="roleDot" class="role-dot"></span>
-        <span id="roleText">Role</span>
+  <div class="topbar-right">
+    <div id="uploadSection" class="upload">
+      <input type="file" id="fileInput" hidden />
+      <button id="selectFileBtn" class="btn btn-primary">Select file</button>
+      <button class="btn btn-primary" onclick="uploadFile()">Upload</button>
+    </div>
+
+    <div class="notif-wrapper">
+      <button class="notif-btn" onclick="toggleNotifications()">
+        <span class="bell-icon">🔔</span>
+        <span id="notifCount" class="notif-badge" style="display:none;">0</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+  <!-- TABS (super_admin only) -->
+  <div id="adminTabs" style="display:none;" class="tab-bar">
+    <button class="tab-btn active" id="tabFiles" onclick="switchTab('files')">📁 Files</button>
+    <button class="tab-btn" id="tabUsers" onclick="switchTab('users')">👥 User Management</button>
+  </div>
+
+  <!-- SUPER ADMIN PANEL (User Management tab) -->
+  <section id="adminSection" class="admin-panel" style="display:none;">
+    <div class="admin-panel-header">
+      <div>
+        <h3>User Management</h3>
+        <p class="muted">Create users, change roles, and delete accounts</p>
       </div>
     </div>
 
-    <div id="uploadSection" class="upload">
-  <input type="file" id="fileInput" hidden />
-  <button id="selectFileBtn" class="btn btn-primary">Select file</button>
-<input type="file" id="fileInput" style="display:none;" />
-<button class="btn btn-primary" onclick="uploadFile()">Upload</button>
-</div>
-  
-   <div class="notif-wrapper">
-  <button class="notif-btn" onclick="toggleNotifications()">
-    <span class="bell-icon">🔔</span>
-    <span id="notifCount" class="notif-badge" style="display:none;">0</span>
-  </button>
-</div>
+    <div class="admin-grid">
+      <div class="admin-card">
+        <h4>Create User</h4>
+        <div class="admin-form">
+          <input type="email" id="adminNewEmail" placeholder="User email" />
+          <input type="password" id="adminNewPassword" placeholder="Temporary password" />
+          <select id="adminNewRole">
+            <option value="audit">Audit Team</option>
+            <option value="partner">Partner</option>
+            <option value="super_admin">Super Admin</option>
+          </select>
+          <button class="btn btn-primary" id="createUserBtn" type="button">Create User</button>
+        </div>
+      </div>
 
-  </header>
+      <div class="admin-card">
+        <div class="admin-users-top">
+          <h4>All Users</h4>
+          <button class="btn" type="button" id="refreshUsersBtn">Refresh</button>
+        </div>
+        <div id="adminUsersList" class="admin-users-list">Loading users...</div>
+      </div>
+    </div>
+  </section>
 
-  
-  <section class="content">
+  <!-- FILES TAB -->
+  <section id="filesSection" class="content">
     <div class="toolbar">
       <div class="search">
         <input id="searchInput" type="text" placeholder="Search files…" />
       </div>
-
       <select id="statusFilter">
         <option value="all">All statuses</option>
         <option value="under_review">Under review</option>
@@ -75,11 +135,30 @@
       </select>
     </div>
 
+    <div id="emptyState" class="empty" style="display:none;">No audit files found.</div>
     <div id="fileList" class="grid"></div>
   </section>
 
-</main>
+  <!-- ARCHIVE PAGE -->
+<section id="archivePage" class="content" style="display:none;">
+  <div class="archive-header">
+    <h2 class="archive-title">🗄️ Approved Audit Files</h2>
+    
   </div>
+
+  <div class="toolbar" style="margin-top:16px;">
+    <div class="search">
+      <input id="archiveSearch" type="text" placeholder="Search archived files…" />
+    </div>
+    <select id="archiveYearFilter">
+      <option value="all">All years</option>
+    </select>
+  </div>
+
+  <div id="archiveList" class="archive-list"></div>
+</section>
+
+</main>
       
   <!-- Comments Drawer -->
   <div id="commentsPanel" class="drawer" style="display:none;">
