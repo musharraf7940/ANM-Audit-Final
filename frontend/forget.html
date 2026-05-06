@@ -6,6 +6,15 @@
   <title>Reset Password — ANM Audit Tool</title>
   <link rel="icon" type="image/jpeg" href="images/anm.jpeg">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+
+  <link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#4f7cff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ANM Audit">
+
+
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -537,5 +546,12 @@ document.getElementById("otp").addEventListener("input", (e) => {
   e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6);
 });
 </script>
+
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js');
+  }
+</script>
+
 </body>
 </html>
