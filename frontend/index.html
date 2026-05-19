@@ -5,275 +5,256 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Login — ANM Audit Tool</title>
   <link rel="icon" type="image/jpeg" href="images/anm.jpeg">
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#4f7cff">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="ANM Audit">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0047ab">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="ANM Audit">
 
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    :root {
-      --bg: #080e1a;
-      --surface: rgba(255,255,255,0.04);
-      --border: rgba(255,255,255,0.09);
-      --border-focus: rgba(99,148,255,0.6);
-      --text: #e8edf8;
-      --muted: #7a8aaa;
-      --accent: #4f7cff;
-      --accent-glow: rgba(79,124,255,0.25);
-      --success: #2dd4bf;
-      --error: #ff5572;
+    html, body {
+      height: 100%;
+      font-family: 'DM Sans', sans-serif;
+      overflow: hidden;
     }
 
-    html, body { height: 100%; font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); overflow: hidden; }
+    /* ─── Background ─────────────────────────────── */
+    .bg-photo {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      background-image: url('images/Background.png');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+    }
 
-    /* Background */
-    .bg { position: fixed; inset: 0; z-index: 0; overflow: hidden; }
-    .bg::before {
+    .bg-photo::after {
       content: '';
       position: absolute;
-      width: 700px; height: 700px;
-      background: radial-gradient(circle, rgba(79,124,255,0.13) 0%, transparent 70%);
-      top: -200px; left: -200px;
-      animation: drift1 18s ease-in-out infinite alternate;
-    }
-    .bg::after {
-      content: '';
-      position: absolute;
-      width: 500px; height: 500px;
-      background: radial-gradient(circle, rgba(45,212,191,0.08) 0%, transparent 70%);
-      bottom: -100px; right: -100px;
-      animation: drift2 14s ease-in-out infinite alternate;
-    }
-    .bg-orb {
-      position: absolute;
-      width: 350px; height: 350px;
-      background: radial-gradient(circle, rgba(255,85,114,0.06) 0%, transparent 70%);
-      top: 55%; left: 65%;
-      transform: translate(-50%, -50%);
-      animation: drift3 20s ease-in-out infinite alternate;
-    }
-    @keyframes drift1 { to { transform: translate(80px, 60px); } }
-    @keyframes drift2 { to { transform: translate(-60px, -40px); } }
-    @keyframes drift3 { to { transform: translate(-50%, -50%) translate(40px, -30px); } }
-
-    .grid-overlay {
-      position: fixed; inset: 0; z-index: 0;
-      background-image:
-        linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
-      background-size: 60px 60px;
+      inset: 0;
+      background: rgba(255, 255, 255, 0.18);
     }
 
-    /* Layout */
+    /* ─── Page layout ────────────────────────────── */
     .page {
-      position: relative; z-index: 1;
+      position: relative;
+      z-index: 1;
       min-height: 100vh;
-      display: flex; align-items: center; justify-content: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
       padding: 24px;
     }
 
-    .card {
-      width: 100%; max-width: 420px;
-      background: rgba(255,255,255,0.035);
-      border: 1px solid var(--border);
-      border-radius: 24px;
-      padding: 40px 36px 36px;
-      backdrop-filter: blur(20px);
-      box-shadow:
-        0 0 0 1px rgba(255,255,255,0.04) inset,
-        0 40px 80px rgba(0,0,0,0.5),
-        0 0 60px rgba(79,124,255,0.04);
-      animation: fadeUp 0.5s ease both;
-    }
-
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(20px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-
-    /* Logo */
-    .logo-wrap {
-      display: flex; align-items: center; gap: 12px;
+    /* ─── Logo area ──────────────────────────────── */
+    .header-area {
+      text-align: center;
       margin-bottom: 32px;
     }
+
     .logo-img {
-      width: 46px; height: 46px;
-      object-fit: contain; border-radius: 10px;
+      width: 90px;
+      height: auto;
+      margin-bottom: 12px;
     }
-    .logo-name { font-size: 15px; font-weight: 600; color: var(--text); letter-spacing: 0.3px; }
-    .logo-tag  { font-size: 11px; color: var(--muted); margin-top: 1px; }
 
-    /* Heading */
-    .heading    { font-size: 22px; font-weight: 600; color: var(--text); margin-bottom: 4px; letter-spacing: -0.3px; }
-    .subheading { font-size: 13px; color: var(--muted); margin-bottom: 28px; }
+    .logo-name {
+      font-size: 22px;
+      font-weight: 700;
+      color: #111;
+      letter-spacing: 0.5px;
+    }
 
-    /* Fields */
-    .field { margin-bottom: 16px; }
-    .field label {
-      display: block; font-size: 12px; font-weight: 500;
-      color: var(--muted); margin-bottom: 7px;
-      letter-spacing: 0.5px; text-transform: uppercase;
+    .logo-tag {
+      font-size: 13px;
+      color: #666;
+      margin-top: 3px;
     }
-    .input-wrap { position: relative; }
-    .input-wrap ion-icon {
-      position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
-      color: var(--muted); font-size: 16px; pointer-events: none;
-    }
-    .field input {
+
+    /* ─── Form container ─────────────────────────── */
+    .form-container {
       width: 100%;
-      padding: 13px 16px 13px 42px;
-      background: rgba(255,255,255,0.04);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      color: var(--text);
-      font-size: 14px;
+      max-width: 400px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    /* ─── Pill inputs ────────────────────────────── */
+    .input-wrap {
+      position: relative;
+    }
+
+    .input-wrap ion-icon {
+      position: absolute;
+      left: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 18px;
+      color: #999;
+      pointer-events: none;
+    }
+
+    .input-wrap input {
+      width: 100%;
+      padding: 16px 20px 16px 50px;
+      background: #ffffff;
+      border: none;
+      border-radius: 50px;
+      font-size: 15px;
       font-family: 'DM Sans', sans-serif;
+      color: #222;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.10);
       outline: none;
-      transition: all 0.2s ease;
+      transition: box-shadow 0.2s ease;
     }
-    .field input:focus {
-      border-color: var(--border-focus);
-      background: rgba(79,124,255,0.06);
-      box-shadow: 0 0 0 3px rgba(79,124,255,0.1);
-    }
-    .field input::placeholder { color: rgba(255,255,255,0.18); }
 
-    /* Remember / forgot row */
+    .input-wrap input:focus {
+      box-shadow: 0 4px 20px rgba(0, 71, 171, 0.2);
+    }
+
+    .input-wrap input::placeholder { color: #aaa; }
+
+    /* ─── Remember / Forgot row ──────────────────── */
     .row-between {
-      display: flex; align-items: center; justify-content: space-between;
-      margin-bottom: 22px; margin-top: -4px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 4px;
     }
-    .remember {
-      display: flex; align-items: center; gap: 8px;
-      font-size: 13px; color: var(--muted); cursor: pointer;
-    }
-    .remember input[type="checkbox"] {
-      width: 15px; height: 15px; accent-color: var(--accent);
-      border-radius: 4px; cursor: pointer;
-    }
-    .forgot-link {
-      font-size: 13px; color: var(--accent);
-      text-decoration: none; transition: opacity 0.2s;
-    }
-    .forgot-link:hover { opacity: 0.75; }
 
-    /* Primary button */
+    .remember {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: #555;
+      cursor: pointer;
+    }
+
+    .remember input[type="checkbox"] {
+      width: 15px;
+      height: 15px;
+      accent-color: #0047ab;
+      cursor: pointer;
+    }
+
+    .forgot-link {
+      font-size: 13px;
+      color: #0047ab;
+      text-decoration: none;
+      font-weight: 500;
+      transition: opacity 0.2s;
+    }
+
+    .forgot-link:hover { opacity: 0.7; }
+
+    /* ─── Button ─────────────────────────────────── */
     .btn-primary {
-      width: 100%; padding: 14px;
-      background: var(--accent);
-      border: none; border-radius: 12px;
-      color: #fff; font-size: 14px; font-weight: 600;
+      width: 100%;
+      padding: 16px;
+      background: #0047ab;
+      border: none;
+      border-radius: 50px;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 600;
       font-family: 'DM Sans', sans-serif;
-      cursor: pointer; transition: all 0.2s ease;
-      position: relative; overflow: hidden;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin-top: 4px;
     }
+
     .btn-primary:hover {
-      background: #6b92ff;
+      background: #003580;
       transform: translateY(-1px);
-      box-shadow: 0 8px 24px rgba(79,124,255,0.35);
+      box-shadow: 0 8px 24px rgba(0, 71, 171, 0.35);
     }
+
     .btn-primary:active { transform: translateY(0); }
-    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-    .btn-primary .spinner {
-      display: inline-block; width: 14px; height: 14px;
-      border: 2px solid rgba(255,255,255,0.3);
-      border-top-color: #fff; border-radius: 50%;
-      animation: spin 0.7s linear infinite;
-      vertical-align: middle; margin-right: 8px;
+
+    .btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
     }
+
+    .btn-primary .spinner {
+      display: inline-block;
+      width: 14px; height: 14px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* Divider */
-    .divider {
-      display: flex; align-items: center; gap: 12px;
-      margin: 20px 0; color: var(--muted); font-size: 12px;
-    }
-    .divider::before, .divider::after {
-      content: ''; flex: 1; height: 1px; background: var(--border);
-    }
-
-    /* Ghost button */
-    .btn-ghost {
-      width: 100%; padding: 13px;
-      background: transparent;
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      color: var(--muted); font-size: 14px; font-weight: 500;
-      font-family: 'DM Sans', sans-serif;
-      cursor: pointer; transition: all 0.2s ease;
-    }
-    .btn-ghost:hover {
-      background: rgba(255,255,255,0.04);
-      border-color: rgba(255,255,255,0.15);
-      color: var(--text);
-    }
-
-    /* Message */
+    /* ─── Message ────────────────────────────────── */
     .msg {
-      margin-top: 16px; padding: 11px 14px;
-      border-radius: 10px; font-size: 13px; line-height: 1.5;
-      display: none; animation: fadeIn 0.25s ease;
+      text-align: center;
+      padding: 11px 14px;
+      border-radius: 12px;
+      font-size: 13px;
+      line-height: 1.5;
+      display: none;
     }
-    @keyframes fadeIn { from { opacity:0; transform: translateY(-4px); } to { opacity:1; transform:none; } }
+
     .msg.show    { display: block; }
-    .msg.error   { background: rgba(255,85,114,0.12); border: 1px solid rgba(255,85,114,0.25); color: #ff8099; }
-    .msg.success { background: rgba(45,212,191,0.12); border: 1px solid rgba(45,212,191,0.25); color: #2dd4bf; }
-    .msg.loading { background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--muted); }
+    .msg.error   { background: rgba(255,0,0,0.07); color: #cc0000; }
+    .msg.success { background: rgba(0,128,0,0.07); color: #007700; }
+    .msg.loading { background: rgba(0,0,0,0.05); color: #555; }
 
     /* autofill fix */
     input:-webkit-autofill,
     input:-webkit-autofill:focus {
-      -webkit-text-fill-color: var(--text) !important;
+      -webkit-text-fill-color: #222 !important;
       transition: background-color 999999s;
-      box-shadow: 0 0 0 1000px rgba(79,124,255,0.06) inset !important;
-      caret-color: var(--text);
+      box-shadow: 0 0 0 1000px #ffffff inset !important;
+      caret-color: #222;
+    }
+
+    /* ─── Mobile ─────────────────────────────────── */
+    @media (max-width: 480px) {
+      .logo-img { width: 70px; }
+      .logo-name { font-size: 19px; }
+      .form-container { max-width: 100%; }
     }
   </style>
 </head>
 <body>
 
-<div class="bg"><div class="bg-orb"></div></div>
-<div class="grid-overlay"></div>
+<div class="bg-photo"></div>
 
 <div class="page">
-  <div class="card">
 
-    <!-- Logo -->
-    <div class="logo-wrap">
-      <img src="images/WhatsApp Image 2026-01-06 at 11.19.28 PM.jpeg" class="logo-img" alt="ANM">
-      <div>
-        <div class="logo-name">ANM Audit Tool</div>
-        <div class="logo-tag">Secure workspace</div>
-      </div>
+  <!-- Logo -->
+  <div class="header-area">
+    <img src="images/ANM A.png" class="logo-img" alt="ANM">
+    <div class="logo-name">A N M Sri Lanka</div>
+    <div class="logo-tag">Secure workspace</div>
+  </div>
+
+  <!-- Form -->
+  <div class="form-container">
+
+    <div class="input-wrap">
+      <ion-icon name="mail-outline"></ion-icon>
+      <input type="email" id="email" placeholder="Email Address" autocomplete="username" required />
     </div>
 
-    <div class="heading">Welcome back</div>
-    <div class="subheading">Sign in to your account to continue</div>
-
-    <!-- Email -->
-    <div class="field">
-      <label>Email address</label>
-      <div class="input-wrap">
-        <ion-icon name="mail-outline"></ion-icon>
-        <input type="email" id="email" placeholder="you@example.com" autocomplete="username" required />
-      </div>
+    <div class="input-wrap">
+      <ion-icon name="lock-closed-outline"></ion-icon>
+      <input type="password" id="password" placeholder="Password" autocomplete="current-password" required />
     </div>
 
-    <!-- Password -->
-    <div class="field">
-      <label>Password</label>
-      <div class="input-wrap">
-        <ion-icon name="lock-closed-outline"></ion-icon>
-        <input type="password" id="password" placeholder="••••••••" autocomplete="current-password" required />
-      </div>
-    </div>
-
-    <!-- Remember / Forgot -->
     <div class="row-between">
       <label class="remember">
         <input type="checkbox" id="rememberMe"> Remember me
@@ -281,8 +262,7 @@
       <a href="forget.html" class="forgot-link">Forgot password?</a>
     </div>
 
-    <!-- Login button -->
-    <button class="btn-primary" id="loginBtn" data-label="Sign In">Login</button>
+    <button class="btn-primary" id="loginBtn" data-label="Get Started">Get Started</button>
 
     <div class="msg" id="message"></div>
 
@@ -313,7 +293,6 @@
     }
   }
 
-  // Enter key submits
   document.addEventListener("keydown", (e) => {
     if (e.key === "Enter") document.getElementById("loginBtn").click();
   });

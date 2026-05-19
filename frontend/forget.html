@@ -5,290 +5,194 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Reset Password — ANM Audit Tool</title>
   <link rel="icon" type="image/jpeg" href="images/anm.jpeg">
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-
-
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#4f7cff">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="ANM Audit">
-
+  <meta name="theme-color" content="#0047ab">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="ANM Audit">
 
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    :root {
-      --bg: #080e1a;
-      --surface: rgba(255,255,255,0.04);
-      --border: rgba(255,255,255,0.09);
-      --border-focus: rgba(99,148,255,0.6);
-      --text: #e8edf8;
-      --muted: #7a8aaa;
-      --accent: #4f7cff;
-      --accent-glow: rgba(79,124,255,0.25);
-      --success: #2dd4bf;
-      --error: #ff5572;
-      --warning: #fbbf24;
-    }
-
     html, body {
       height: 100%;
       font-family: 'DM Sans', sans-serif;
-      background: var(--bg);
-      color: var(--text);
       overflow: hidden;
     }
 
-    /* Animated background */
-    .bg {
+    /* ─── Background ─────────────────────────────── */
+    .bg-photo {
       position: fixed;
       inset: 0;
       z-index: 0;
-      overflow: hidden;
+      background-image: url('images/Background.png');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
     }
 
-    .bg::before {
+    .bg-photo::after {
       content: '';
       position: absolute;
-      width: 700px; height: 700px;
-      background: radial-gradient(circle, rgba(79,124,255,0.12) 0%, transparent 70%);
-      top: -200px; left: -200px;
-      animation: drift1 18s ease-in-out infinite alternate;
-    }
-
-    .bg::after {
-      content: '';
-      position: absolute;
-      width: 500px; height: 500px;
-      background: radial-gradient(circle, rgba(45,212,191,0.08) 0%, transparent 70%);
-      bottom: -100px; right: -100px;
-      animation: drift2 14s ease-in-out infinite alternate;
-    }
-
-    .bg-orb {
-      position: absolute;
-      width: 300px; height: 300px;
-      background: radial-gradient(circle, rgba(255,85,114,0.06) 0%, transparent 70%);
-      top: 50%; left: 60%;
-      transform: translate(-50%, -50%);
-      animation: drift3 20s ease-in-out infinite alternate;
-    }
-
-    @keyframes drift1 { to { transform: translate(80px, 60px); } }
-    @keyframes drift2 { to { transform: translate(-60px, -40px); } }
-    @keyframes drift3 { to { transform: translate(-50%, -50%) translate(40px, -30px); } }
-
-    /* Grid lines */
-    .grid-overlay {
-      position: fixed;
       inset: 0;
-      z-index: 0;
-      background-image:
-        linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
-      background-size: 60px 60px;
+      background: rgba(255, 255, 255, 0.18);
     }
 
-    /* Main layout */
+    /* ─── Page layout ────────────────────────────── */
     .page {
       position: relative;
       z-index: 1;
       min-height: 100vh;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
       padding: 24px;
     }
 
-    .card {
-      width: 100%;
-      max-width: 420px;
-      background: rgba(255,255,255,0.035);
-      border: 1px solid var(--border);
-      border-radius: 24px;
-      padding: 40px 36px;
-      backdrop-filter: blur(20px);
-      box-shadow:
-        0 0 0 1px rgba(255,255,255,0.04) inset,
-        0 40px 80px rgba(0,0,0,0.5),
-        0 0 60px rgba(79,124,255,0.04);
-      animation: fadeUp 0.5s ease both;
-    }
-
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(20px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-
-    /* Logo */
-    .logo-wrap {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 32px;
-    }
-
-    .logo-img {
-      width: 44px;
-      height: 44px;
-      object-fit: contain;
-      border-radius: 10px;
-    }
-
-    .logo-name {
-      font-size: 15px;
-      font-weight: 600;
-      color: var(--text);
-      letter-spacing: 0.3px;
-    }
-
-    .logo-tag {
-      font-size: 11px;
-      color: var(--muted);
-      margin-top: 1px;
-    }
-
-    /* Steps indicator */
-    .steps {
-      display: flex;
-      align-items: center;
-      gap: 0;
+    /* ─── Logo area ──────────────────────────────── */
+    .header-area {
+      text-align: center;
       margin-bottom: 28px;
     }
 
+    .logo-img {
+      width: 90px;
+      height: auto;
+      margin-bottom: 12px;
+    }
+
+    .logo-name {
+      font-size: 22px;
+      font-weight: 700;
+      color: #111;
+      letter-spacing: 0.5px;
+    }
+
+    .logo-tag {
+      font-size: 13px;
+      color: #666;
+      margin-top: 3px;
+    }
+
+    /* ─── Container ──────────────────────────────── */
+    .form-container {
+      width: 100%;
+      max-width: 400px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    /* ─── Steps indicator ────────────────────────── */
+    .steps {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 6px;
+    }
+
     .step-dot {
-      width: 28px; height: 28px;
+      width: 30px; height: 30px;
       border-radius: 50%;
-      border: 1.5px solid var(--border);
-      background: var(--surface);
+      background: #fff;
+      border: 2px solid #ddd;
       display: flex; align-items: center; justify-content: center;
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--muted);
-      font-family: 'DM Mono', monospace;
+      font-size: 12px; font-weight: 700;
+      color: #aaa;
       transition: all 0.3s ease;
-      flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
     }
 
     .step-dot.active {
-      border-color: var(--accent);
-      background: rgba(79,124,255,0.15);
-      color: var(--accent);
-      box-shadow: 0 0 12px rgba(79,124,255,0.3);
+      border-color: #0047ab;
+      color: #0047ab;
+      box-shadow: 0 0 12px rgba(0,71,171,0.2);
     }
 
     .step-dot.done {
-      border-color: var(--success);
-      background: rgba(45,212,191,0.12);
-      color: var(--success);
+      background: #0047ab;
+      border-color: #0047ab;
+      color: #fff;
     }
 
     .step-line {
-      flex: 1;
-      height: 1.5px;
-      background: var(--border);
+      width: 40px; height: 2px;
+      background: #ddd;
+      margin: 0 6px;
       transition: background 0.3s ease;
     }
 
-    .step-line.done {
-      background: var(--success);
-    }
+    .step-line.done { background: #0047ab; }
 
-    /* Heading */
+    /* ─── Step headings ──────────────────────────── */
     .heading {
-      font-size: 22px;
-      font-weight: 600;
-      color: var(--text);
-      margin-bottom: 6px;
-      letter-spacing: -0.3px;
+      font-size: 20px;
+      font-weight: 700;
+      color: #111;
+      text-align: center;
     }
 
     .subheading {
       font-size: 13px;
-      color: var(--muted);
-      margin-bottom: 28px;
+      color: #666;
+      text-align: center;
       line-height: 1.5;
     }
 
-    /* Input */
-    .field {
-      margin-bottom: 16px;
-    }
-
-    .field label {
-      display: block;
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--muted);
-      margin-bottom: 7px;
-      letter-spacing: 0.5px;
-      text-transform: uppercase;
-    }
-
+    /* ─── Pill inputs ────────────────────────────── */
     .field input {
       width: 100%;
-      padding: 13px 16px;
-      background: rgba(255,255,255,0.04);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      color: var(--text);
-      font-size: 14px;
+      padding: 16px 20px;
+      background: #ffffff;
+      border: none;
+      border-radius: 50px;
+      font-size: 15px;
       font-family: 'DM Sans', sans-serif;
+      color: #222;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.10);
       outline: none;
-      transition: all 0.2s ease;
+      text-align: center;
+      transition: box-shadow 0.2s ease;
     }
 
     .field input:focus {
-      border-color: var(--border-focus);
-      background: rgba(79,124,255,0.06);
-      box-shadow: 0 0 0 3px rgba(79,124,255,0.1);
+      box-shadow: 0 4px 20px rgba(0,71,171,0.2);
     }
 
-    .field input::placeholder { color: rgba(255,255,255,0.2); }
+    .field input::placeholder { color: #aaa; }
 
-    /* OTP input special style */
     .otp-input {
-      text-align: center;
-      font-family: 'DM Mono', monospace !important;
+      letter-spacing: 6px !important;
       font-size: 22px !important;
-      letter-spacing: 8px;
-      padding: 16px !important;
+      font-weight: 700 !important;
     }
 
-    /* Button */
+    /* ─── Button ─────────────────────────────────── */
     .btn-primary {
       width: 100%;
-      padding: 14px;
-      background: var(--accent);
+      padding: 16px;
+      background: #0047ab;
       border: none;
-      border-radius: 12px;
+      border-radius: 50px;
       color: #fff;
-      font-size: 14px;
+      font-size: 16px;
       font-weight: 600;
       font-family: 'DM Sans', sans-serif;
       cursor: pointer;
       transition: all 0.2s ease;
-      margin-top: 8px;
-      position: relative;
-      overflow: hidden;
     }
 
     .btn-primary:hover {
-      background: #6b92ff;
+      background: #003580;
       transform: translateY(-1px);
-      box-shadow: 0 8px 24px rgba(79,124,255,0.35);
+      box-shadow: 0 8px 24px rgba(0,71,171,0.35);
     }
 
     .btn-primary:active { transform: translateY(0); }
+    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 
-    .btn-primary:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-      transform: none;
-    }
-
-    /* Loading spinner inside button */
     .btn-primary .spinner {
       display: inline-block;
       width: 14px; height: 14px;
@@ -302,73 +206,62 @@
 
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* Message toast */
+    /* ─── Back link ──────────────────────────────── */
+    .back-link {
+      text-align: center;
+      display: block;
+      color: #0047ab;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+      transition: opacity 0.2s;
+    }
+
+    .back-link:hover { opacity: 0.7; }
+
+    /* ─── Message ────────────────────────────────── */
     .msg {
-      margin-top: 16px;
+      text-align: center;
       padding: 11px 14px;
-      border-radius: 10px;
+      border-radius: 12px;
       font-size: 13px;
       line-height: 1.5;
       display: none;
-      animation: fadeIn 0.25s ease;
     }
 
-    @keyframes fadeIn { from { opacity:0; transform: translateY(-4px); } to { opacity:1; transform:none; } }
+    .msg.show    { display: block; }
+    .msg.error   { background: rgba(255,0,0,0.07); color: #cc0000; }
+    .msg.success { background: rgba(0,128,0,0.07); color: #007700; }
+    .msg.loading { background: rgba(0,0,0,0.05); color: #555; }
 
-    .msg.show { display: block; }
-    .msg.info  { background: rgba(79,124,255,0.12); border: 1px solid rgba(79,124,255,0.25); color: #8fb4ff; }
-    .msg.success { background: rgba(45,212,191,0.12); border: 1px solid rgba(45,212,191,0.25); color: #2dd4bf; }
-    .msg.error { background: rgba(255,85,114,0.12); border: 1px solid rgba(255,85,114,0.25); color: #ff8099; }
-    .msg.loading { background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--muted); }
-
-    /* Back link */
-    .back-link {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      margin-top: 20px;
-      font-size: 13px;
-      color: var(--muted);
-      text-decoration: none;
-      transition: color 0.2s;
-    }
-
-    .back-link:hover { color: var(--text); }
-
-    /* Step sections */
+    /* ─── Step sections ──────────────────────────── */
     .step-section { display: none; }
-    .step-section.active { display: block; animation: fadeIn 0.3s ease; }
+    .step-section.active { display: flex; flex-direction: column; gap: 14px; }
 
-    /* autofill fix */
-    input:-webkit-autofill,
-    input:-webkit-autofill:focus {
-      -webkit-text-fill-color: var(--text) !important;
-      transition: background-color 999999s;
-      box-shadow: 0 0 0 1000px rgba(79,124,255,0.06) inset !important;
-      caret-color: var(--text);
+    /* ─── Mobile ─────────────────────────────────── */
+    @media (max-width: 480px) {
+      .logo-img { width: 70px; }
+      .logo-name { font-size: 19px; }
+      .form-container { max-width: 100%; }
     }
   </style>
 </head>
 <body>
 
-<div class="bg">
-  <div class="bg-orb"></div>
-</div>
-<div class="grid-overlay"></div>
+<div class="bg-photo"></div>
 
 <div class="page">
-  <div class="card">
 
-    <!-- Logo -->
-    <div class="logo-wrap">
-      <img src="images/WhatsApp Image 2026-01-06 at 11.19.28 PM.jpeg" class="logo-img" alt="ANM">
-      <div>
-        <div class="logo-name">ANM Audit Tool</div>
-        <div class="logo-tag">Password Recovery</div>
-      </div>
-    </div>
+  <!-- Logo -->
+  <div class="header-area">
+    <img src="images/ANM A.png" class="logo-img" alt="ANM">
+    <div class="logo-name">A N M Sri Lanka</div>
+    <div class="logo-tag">Password Recovery</div>
+  </div>
 
-    <!-- Steps indicator -->
+  <div class="form-container">
+
+    <!-- Steps -->
     <div class="steps">
       <div class="step-dot active" id="dot1">1</div>
       <div class="step-line" id="line1"></div>
@@ -377,174 +270,145 @@
       <div class="step-dot" id="dot3">3</div>
     </div>
 
-    <!-- STEP 1: Email -->
+    <!-- Step 1: Email -->
     <div class="step-section active" id="step-email">
       <div class="heading">Forgot password?</div>
       <div class="subheading">Enter your registered email and we'll send you a 6-digit OTP.</div>
-
       <div class="field">
-        <label>Email address</label>
-        <input type="email" id="email" placeholder="you@example.com" autocomplete="email" />
+        <input type="email" id="email" placeholder="Email Address" autocomplete="email" />
       </div>
-
       <button class="btn-primary" id="sendOtpBtn">Send OTP</button>
     </div>
 
-    <!-- STEP 2: OTP -->
+    <!-- Step 2: OTP -->
     <div class="step-section" id="step-otp">
       <div class="heading">Check your email</div>
       <div class="subheading" id="otp-hint">Enter the 6-digit code we sent to your email.</div>
-
       <div class="field">
-        <label>One-time password</label>
         <input type="text" id="otp" class="otp-input" placeholder="000000" maxlength="6" inputmode="numeric" autocomplete="one-time-code" />
       </div>
-
       <button class="btn-primary" id="verifyOtpBtn">Verify OTP</button>
     </div>
 
-    <!-- STEP 3: New Password -->
+    <!-- Step 3: New Password -->
     <div class="step-section" id="step-password">
       <div class="heading">Set new password</div>
       <div class="subheading">Choose a strong password — at least 6 characters.</div>
-
       <div class="field">
-        <label>New password</label>
-        <input type="password" id="newPassword" placeholder="••••••••" autocomplete="new-password" />
+        <input type="password" id="newPassword" placeholder="New Password" autocomplete="new-password" />
       </div>
-
       <button class="btn-primary" id="updatePasswordBtn">Update Password</button>
     </div>
 
-    <!-- Message -->
     <div class="msg" id="message"></div>
-
-    <a href="index.html" class="back-link">
-      ← Back to login
-    </a>
+    <a href="index.html" class="back-link">← Back to login</a>
 
   </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-const supabaseUrl = 'https://tdcusqldrsrogtsafeev.supabase.co';
-const supabaseKey = 'sb_publishable_zq8kXpPwoXhR10VUKWTLMQ_mYiFocTQ';
+  const supabaseUrl = 'https://tdcusqldrsrogtsafeev.supabase.co';
+  const supabaseKey = 'sb_publishable_zq8kXpPwoXhR10VUKWTLMQ_mYiFocTQ';
 
-let userEmail = "";
-let verifiedOtp = "";
+  let userEmail = "";
+  let verifiedOtp = "";
 
-// --- UI helpers ---
-function showMessage(text, type = "info") {
-  const el = document.getElementById("message");
-  el.textContent = text;
-  el.className = `msg show ${type}`;
-}
-
-function setStep(n) {
-  [1,2,3].forEach(i => {
-    document.getElementById(`step-${['email','otp','password'][i-1]}`).classList.toggle('active', i === n);
-    const dot = document.getElementById(`dot${i}`);
-    dot.classList.remove('active','done');
-    if (i < n) dot.classList.add('done');
-    else if (i === n) dot.classList.add('active');
-  });
-  [1,2].forEach(i => {
-    document.getElementById(`line${i}`)?.classList.toggle('done', i < n);
-  });
-  document.getElementById("message").className = "msg"; // hide message on step change
-}
-
-function setLoading(btnId, loading) {
-  const btn = document.getElementById(btnId);
-  if (loading) {
-    btn.disabled = true;
-    btn.innerHTML = `<span class="spinner"></span> Please wait...`;
-  } else {
-    btn.disabled = false;
-    btn.innerHTML = btn.dataset.label;
-  }
-}
-
-// Save button labels
-document.querySelectorAll('.btn-primary').forEach(b => b.dataset.label = b.textContent);
-
-// --- API helper ---
-async function callFunction(name, body) {
-  const res = await fetch(`${supabaseUrl}/functions/v1/${name}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "apikey": supabaseKey,
-      "Authorization": `Bearer ${supabaseKey}`
-    },
-    body: JSON.stringify(body)
-  });
-  const data = await res.json();
-  return { data, ok: res.ok };
-}
-
-// --- STEP 1: Send OTP ---
-document.getElementById("sendOtpBtn").addEventListener("click", async () => {
-  const email = document.getElementById("email").value.trim().toLowerCase();
-  if (!email) return showMessage("Please enter your email address.", "error");
-
-  setLoading("sendOtpBtn", true);
-  showMessage("Sending OTP to your email...", "loading");
-
-  const { data, ok } = await callFunction("send-reset-otp", { email });
-
-  setLoading("sendOtpBtn", false);
-
-  if (!ok || data?.error) {
-    showMessage(data?.error || "Failed to send OTP. Try again.", "error");
-    return;
+  function showMessage(text, type = "info") {
+    const el = document.getElementById("message");
+    el.textContent = text;
+    el.className = `msg show ${type}`;
   }
 
-  userEmail = email;
-  document.getElementById("otp-hint").textContent = `We sent a code to ${email}`;
-  setStep(2);
-  showMessage("OTP sent! Check your inbox.", "success");
-});
-
-// --- STEP 2: Verify OTP ---
-document.getElementById("verifyOtpBtn").addEventListener("click", () => {
-  const otp = document.getElementById("otp").value.trim();
-  if (!otp || otp.length < 6) return showMessage("Enter the 6-digit OTP.", "error");
-
-  verifiedOtp = otp;
-  setStep(3);
-});
-
-// --- STEP 3: Update Password ---
-document.getElementById("updatePasswordBtn").addEventListener("click", async () => {
-  const newPassword = document.getElementById("newPassword").value;
-  if (newPassword.length < 6) return showMessage("Password must be at least 6 characters.", "error");
-
-  setLoading("updatePasswordBtn", true);
-  showMessage("Updating your password...", "loading");
-
-  const { data, ok } = await callFunction("verify-reset-otp", {
-    email: userEmail,
-    otp: verifiedOtp,
-    newPassword
-  });
-
-  setLoading("updatePasswordBtn", false);
-
-  if (!ok || data?.error) {
-    showMessage(data?.error || "Password reset failed. Try again.", "error");
-    return;
+  function setStep(n) {
+    [1,2,3].forEach(i => {
+      document.getElementById(`step-${['email','otp','password'][i-1]}`).classList.toggle('active', i === n);
+      const dot = document.getElementById(`dot${i}`);
+      dot.classList.remove('active','done');
+      if (i < n) dot.classList.add('done');
+      else if (i === n) dot.classList.add('active');
+    });
+    [1,2].forEach(i => {
+      document.getElementById(`line${i}`)?.classList.toggle('done', i < n);
+    });
+    document.getElementById("message").className = "msg";
   }
 
-  showMessage("Password updated successfully! Redirecting...", "success");
-  setTimeout(() => { window.location.href = "index.html"; }, 2000);
-});
+  function setLoading(btnId, loading, label) {
+    const btn = document.getElementById(btnId);
+    if (loading) {
+      btn.disabled = true;
+      btn.innerHTML = `<span class="spinner"></span> Please wait...`;
+    } else {
+      btn.disabled = false;
+      btn.innerHTML = label;
+    }
+  }
 
-// Auto-format OTP input (numbers only)
-document.getElementById("otp").addEventListener("input", (e) => {
-  e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6);
-});
+  async function callFunction(name, body) {
+    const res = await fetch(`${supabaseUrl}/functions/v1/${name}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": supabaseKey,
+        "Authorization": `Bearer ${supabaseKey}`
+      },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    return { data, ok: res.ok };
+  }
+
+  document.getElementById("sendOtpBtn").addEventListener("click", async () => {
+    const email = document.getElementById("email").value.trim().toLowerCase();
+    if (!email) return showMessage("Please enter your email.", "error");
+
+    setLoading("sendOtpBtn", true);
+    showMessage("Sending OTP...", "loading");
+    const { data, ok } = await callFunction("send-reset-otp", { email });
+    setLoading("sendOtpBtn", false, "Send OTP");
+
+    if (!ok || data?.error) {
+      showMessage(data?.error || "Failed to send OTP.", "error");
+      return;
+    }
+    userEmail = email;
+    document.getElementById("otp-hint").textContent = `We sent a code to ${email}`;
+    setStep(2);
+    showMessage("OTP sent! Check your inbox.", "success");
+  });
+
+  document.getElementById("verifyOtpBtn").addEventListener("click", () => {
+    const otp = document.getElementById("otp").value.trim();
+    if (otp.length < 6) return showMessage("Enter the 6-digit OTP.", "error");
+    verifiedOtp = otp;
+    setStep(3);
+  });
+
+  document.getElementById("updatePasswordBtn").addEventListener("click", async () => {
+    const newPassword = document.getElementById("newPassword").value;
+    if (newPassword.length < 6) return showMessage("Password must be at least 6 characters.", "error");
+
+    setLoading("updatePasswordBtn", true);
+    showMessage("Updating password...", "loading");
+    const { data, ok } = await callFunction("verify-reset-otp", {
+      email: userEmail,
+      otp: verifiedOtp,
+      newPassword
+    });
+    setLoading("updatePasswordBtn", false, "Update Password");
+
+    if (!ok || data?.error) {
+      showMessage(data?.error || "Reset failed. Try again.", "error");
+      return;
+    }
+    showMessage("Password updated! Redirecting...", "success");
+    setTimeout(() => { window.location.href = "index.html"; }, 2000);
+  });
+
+  document.getElementById("otp").addEventListener("input", (e) => {
+    e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6);
+  });
 </script>
 
 <script>
